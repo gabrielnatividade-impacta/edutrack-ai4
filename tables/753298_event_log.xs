@@ -4,7 +4,9 @@ table event_log {
 
   schema {
     int id
-    timestamp created_at?=now
+    timestamp created_at?=now {
+      visibility = "private"
+    }
   
     // Reference to the user who performed the action.
     int user_id? {
@@ -25,7 +27,6 @@ table event_log {
 
   index = [
     {type: "primary", field: [{name: "id"}]}
-    {type: "gin", field: [{name: "xdo", op: "jsonb_path_op"}]}
     {type: "btree", field: [{name: "created_at", op: "desc"}]}
   ]
 

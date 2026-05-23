@@ -1,0 +1,1 @@
+- [ ] Criar tabela academic_tasks com campos: id (uuid), title (text), description (text), due_date (date), status (text), subject_id (FK para subjects), user_id (FK para users), created_at (timestamp), updated_at (timestamp)

@@ -4,7 +4,9 @@ table agent_conversation {
 
   schema {
     int id
-    timestamp created_at?=now
+    timestamp created_at?=now {
+      visibility = "private"
+    }
   
     // The user who owns this conversation thread.
     int owner_user? {
@@ -20,7 +22,6 @@ table agent_conversation {
 
   index = [
     {type: "primary", field: [{name: "id"}]}
-    {type: "gin", field: [{name: "xdo", op: "jsonb_path_op"}]}
     {type: "btree", field: [{name: "created_at", op: "desc"}]}
   ]
 

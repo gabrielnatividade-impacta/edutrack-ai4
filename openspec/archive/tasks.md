@@ -1,0 +1,2 @@
+- [ ] Criar tabela activity_grades (com campos id, activity_id, student_id, grade, teacher_id, timestamp)
+- [ ] Criar API POST /activity_grades para lançar nota (com validação de professor autenticado)

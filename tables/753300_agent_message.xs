@@ -4,7 +4,9 @@ table agent_message {
 
   schema {
     int id
-    timestamp created_at?=now
+    timestamp created_at?=now {
+      visibility = "private"
+    }
   
     // Reference to the parent conversation thread.
     int conversation? {
@@ -22,7 +24,6 @@ table agent_message {
 
   index = [
     {type: "primary", field: [{name: "id"}]}
-    {type: "gin", field: [{name: "xdo", op: "jsonb_path_op"}]}
     {type: "btree", field: [{name: "created_at", op: "desc"}]}
   ]
 

@@ -1,0 +1,4 @@
+- [ ] Criar endpoint POST `/subjects` para inserir nova disciplina com `user_id` do usuário autenticado.
+- [ ] Criar endpoint GET `/subjects` para listar apenas as disciplinas do usuário autenticado.
+- [ ] Criar endpoint PATCH `/subjects/{id}` para atualizar disciplina somente se `user_id` coincidir com o usuário autenticado.
+- [ ] Criar endpoint DELETE `/subjects/{id}` para excluir disciplina somente se `user_id` coincidir com o usuário autenticado.

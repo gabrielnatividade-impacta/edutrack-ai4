@@ -330,8 +330,18 @@ def require_backend_config():
 
 def render_auth():
     st.markdown('<div class="auth-shell">', unsafe_allow_html=True)
-    st.title("EduTrack AI")
-    st.caption("Organize disciplinas, tarefas e progresso acadêmico em um só lugar.")
+    st.markdown(
+        """
+        <div class="auth-brand">
+          <div class="brand-mark">ET</div>
+          <div>
+            <h1>EduTrack AI</h1>
+            <p>Organize disciplinas, tarefas e progresso acadêmico em um só lugar.</p>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     tabs = st.tabs(["Entrar", "Criar conta"])
     with tabs[0]:
@@ -382,13 +392,25 @@ def render_auth():
     st.markdown("</div>", unsafe_allow_html=True)
 
 
+def render_page_title(title, subtitle):
+    st.markdown(
+        f"""
+        <div class="page-title">
+          <h1>{title}</h1>
+          <p>{subtitle}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_dashboard(subjects, tasks):
     active_subjects = [subject for subject in subjects if not subject_is_archived(subject)]
     pending_tasks = [task for task in tasks if task.get("status") != "completed"]
     overdue_tasks = [task for task in tasks if is_overdue(task)]
     progress = task_progress(tasks)
 
-    st.header("Dashboard")
+    render_page_title("Dashboard", "Acompanhe sua rotina acadêmica, pendências e progresso geral.")
     if not subjects and not tasks:
         st.info("Bem-vindo! Cadastre sua primeira disciplina para começar a acompanhar sua rotina acadêmica.")
 
@@ -409,7 +431,7 @@ def render_dashboard(subjects, tasks):
 
 
 def render_subjects(subjects, tasks):
-    st.header("Disciplinas")
+    render_page_title("Disciplinas", "Cadastre, filtre, arquive e acompanhe o progresso por matéria.")
     with st.form("subject_form"):
         st.subheader("Nova disciplina")
         col1, col2 = st.columns(2)
@@ -499,7 +521,7 @@ def render_subjects(subjects, tasks):
 
 
 def render_tasks(subjects, tasks):
-    st.header("Tarefas")
+    render_page_title("Tarefas", "Planeje entregas, acompanhe status e resolva pendências por prazo ou disciplina.")
     if not get_base_url("tasks"):
         st.warning("Configure XANO_TASKS_BASE_URL para ativar cadastro, listagem e edição de tarefas.")
     subject_names = {subject.get("id"): subject.get("name") for subject in subjects}
@@ -649,7 +671,7 @@ def render_task_item(task, subject_options, subject_names):
 
 
 def render_reports(subjects, tasks):
-    st.header("Relatórios")
+    render_page_title("Relatórios", "Analise histórico, progresso por disciplina e exporte seus dados.")
     if not get_base_url("tasks"):
         st.info("Relatórios de tarefas ficam completos após configurar XANO_TASKS_BASE_URL.")
     start, end = st.columns(2)
@@ -778,7 +800,7 @@ def generate_pdf_report(title, rows):
 
 
 def render_profile():
-    st.header("Perfil")
+    render_page_title("Perfil", "Atualize seus dados de acesso e informações da conta.")
     user = st.session_state.get("user") or {}
     with st.form("profile_form"):
         name = st.text_input("Nome", value=user.get("name") or "")
@@ -814,48 +836,169 @@ def apply_theme():
     st.markdown(
         """
         <style>
-        .stApp { background: #f7f9fc; color: #172033; }
-        h1, h2, h3 { color: #16243a; letter-spacing: 0; }
-        section[data-testid="stSidebar"] { background: #132238; }
+        :root {
+          --bg: #f4f7fb;
+          --panel: #ffffff;
+          --ink: #172033;
+          --muted: #64748b;
+          --line: #d8e1ee;
+          --brand: #2267d8;
+          --brand-dark: #194fa8;
+          --accent: #0f9f8f;
+          --danger: #d64545;
+          --warning-bg: #fff3d6;
+        }
+        .stApp {
+          background:
+            radial-gradient(circle at top left, rgba(34, 103, 216, .10), transparent 28rem),
+            linear-gradient(180deg, #f8fbff 0%, var(--bg) 42%, #eef3f8 100%);
+          color: var(--ink);
+        }
+        .block-container {
+          max-width: 1180px;
+          padding-top: 2rem;
+          padding-bottom: 4rem;
+        }
+        h1, h2, h3 { color: #13213a; letter-spacing: 0; }
+        .page-title {
+          border-bottom: 1px solid var(--line);
+          padding: 0 0 18px 0;
+          margin: 0 0 22px 0;
+        }
+        .page-title h1 {
+          font-size: 34px;
+          line-height: 1.15;
+          margin: 0 0 6px 0;
+          font-weight: 760;
+        }
+        .page-title p {
+          margin: 0;
+          color: var(--muted);
+          font-size: 15px;
+        }
+        section[data-testid="stSidebar"] {
+          background: #111c2f;
+          border-right: 1px solid rgba(255,255,255,.08);
+        }
         section[data-testid="stSidebar"] * { color: #f8fbff; }
-        div[data-testid="stMetric"] {
-          background: #ffffff;
-          border: 1px solid #d9e2ef;
+        section[data-testid="stSidebar"] [role="radiogroup"] label {
           border-radius: 8px;
-          padding: 14px;
+          padding: 4px 8px;
+        }
+        div[data-testid="stMetric"] {
+          background: var(--panel);
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          padding: 16px 18px;
+          box-shadow: 0 8px 22px rgba(15, 35, 70, .06);
+        }
+        div[data-testid="stMetric"] label {
+          color: var(--muted) !important;
+          font-weight: 650;
+        }
+        div[data-testid="stMetricValue"] {
+          color: #10203a;
+          font-weight: 780;
+        }
+        div[data-testid="stExpander"] {
+          background: rgba(255,255,255,.86);
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          box-shadow: 0 8px 20px rgba(15, 35, 70, .045);
+          overflow: hidden;
+          margin-bottom: 12px;
+        }
+        div[data-testid="stExpander"] details summary {
+          padding: 8px 10px;
+          font-weight: 700;
+        }
+        div[data-testid="stForm"] {
+          background: rgba(255,255,255,.74);
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          padding: 16px 18px 18px;
+          box-shadow: 0 8px 20px rgba(15, 35, 70, .04);
         }
         .stTextInput, .stTextArea, .stSelectbox, .stNumberInput, .stDateInput, .stToggle, .stFileUploader {
-          color: #172033;
+          color: var(--ink);
         }
         .stTextInput input, .stTextArea textarea, .stSelectbox select, .stNumberInput input, .stDateInput input {
           background: #ffffff !important;
-          color: #172033 !important;
+          color: var(--ink) !important;
+          border-radius: 8px !important;
+          border-color: var(--line) !important;
         }
         .stTextInput, .stTextArea, .stSelectbox, .stNumberInput, .stDateInput {
-          border-color: #d9e2ef !important;
+          border-color: var(--line) !important;
         }
         button, input[type="submit"], input[type="button"], .stButton>button {
-          background-color: #2f6fe8 !important;
+          background-color: var(--brand) !important;
           color: #ffffff !important;
           border: none !important;
+          border-radius: 8px !important;
+          font-weight: 700 !important;
+          box-shadow: 0 8px 16px rgba(34, 103, 216, .18);
         }
         .stButton>button:hover, button:hover, input[type="submit"]:hover, input[type="button"]:hover {
-          background-color: #245bcc !important;
+          background-color: var(--brand-dark) !important;
         }
         [role="tab"] {
           background: #ffffff !important;
-          color: #172033 !important;
-          border: 1px solid #d9e2ef !important;
+          color: var(--ink) !important;
+          border: 1px solid var(--line) !important;
+          border-radius: 8px 8px 0 0 !important;
         }
         [role="tab"][aria-selected="true"] {
-          background: #2f6fe8 !important;
+          background: var(--brand) !important;
           color: #ffffff !important;
-          border-color: #2f6fe8 !important;
+          border-color: var(--brand) !important;
         }
         .auth-shell {
-          max-width: 760px;
-          margin: 40px auto;
-          padding: 24px;
+          max-width: 820px;
+          margin: 42px auto;
+          padding: 28px;
+          background: rgba(255,255,255,.82);
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          box-shadow: 0 18px 48px rgba(15, 35, 70, .12);
+        }
+        .auth-brand {
+          display: flex;
+          gap: 16px;
+          align-items: center;
+          margin-bottom: 22px;
+        }
+        .brand-mark {
+          width: 56px;
+          height: 56px;
+          border-radius: 8px;
+          display: grid;
+          place-items: center;
+          background: #13213a;
+          color: #ffffff;
+          font-weight: 800;
+          letter-spacing: 0;
+        }
+        .auth-brand h1 {
+          margin: 0;
+          font-size: 32px;
+          line-height: 1.1;
+        }
+        .auth-brand p {
+          margin: 5px 0 0 0;
+          color: var(--muted);
+        }
+        .stAlert {
+          border-radius: 8px;
+          border: 1px solid var(--line);
+        }
+        div[data-testid="stDataFrame"] {
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          overflow: hidden;
+        }
+        .stProgress > div > div > div > div {
+          background-color: var(--accent);
         }
         </style>
         """,

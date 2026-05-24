@@ -1,0 +1,31 @@
+// Get a specific subject from the authenticated user's account.
+query "subjects/{subject_id}" verb=GET {
+  api_group = "Members & Accounts"
+  auth = "user"
+
+  input {
+    int subject_id
+  }
+
+  stack {
+    db.get user {
+      field_name = "id"
+      field_value = $auth.id
+      output = ["id", "account_id"]
+    } as $user
+
+    db.get subjects {
+      field_name = "id"
+      field_value = $input.subject_id
+    } as $subject
+
+    precondition ($subject.id != null && $subject.user_id == $auth.id) {
+      error_type = "notfound"
+      error = "Subject not found"
+    }
+  }
+
+  response = $subject
+  tags = ["subjects", "get"]
+  guid = "-05JdwV1TrF16J6LQXl2xtx1wPk"
+}

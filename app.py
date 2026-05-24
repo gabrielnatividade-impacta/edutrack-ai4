@@ -258,9 +258,33 @@ def due_group_label(task):
         return "Vencidas"
     if due_date == date.today():
         return "Hoje"
-    if due_date <= date.today().replace(day=date.today().day) and due_date:
-        return due_date.strftime("%d/%m/%Y")
+    if due_date > date.today() and (due_date - date.today()).days <= 7:
+        return "Próximos 7 dias"
     return due_date.strftime("%d/%m/%Y")
+
+
+def task_progress(tasks):
+    if not tasks:
+        return 0
+    completed = [task for task in tasks if task.get("status") == "completed"]
+    return round((len(completed) / len(tasks)) * 100)
+
+
+def tasks_for_subject(subject_id, tasks):
+    return [task for task in tasks if task.get("subject_id") == subject_id]
+
+
+def has_duplicate_subject(subjects, name, professor, ignore_id=None):
+    normalized_name = (name or "").strip().lower()
+    normalized_professor = (professor or "").strip().lower()
+    for subject in subjects:
+        if ignore_id is not None and subject.get("id") == ignore_id:
+            continue
+        same_name = (subject.get("name") or "").strip().lower() == normalized_name
+        same_professor = (subject.get("professor") or "").strip().lower() == normalized_professor
+        if same_name and same_professor and not subject_is_archived(subject):
+            return True
+    return False
 
 
 def create_subject(payload):
@@ -362,8 +386,7 @@ def render_dashboard(subjects, tasks):
     active_subjects = [subject for subject in subjects if not subject_is_archived(subject)]
     pending_tasks = [task for task in tasks if task.get("status") != "completed"]
     overdue_tasks = [task for task in tasks if is_overdue(task)]
-    completed_tasks = [task for task in tasks if task.get("status") == "completed"]
-    progress = round((len(completed_tasks) / len(tasks)) * 100) if tasks else 0
+    progress = task_progress(tasks)
 
     st.header("Dashboard")
     if not subjects and not tasks:
@@ -399,6 +422,10 @@ def render_subjects(subjects, tasks):
         submitted = st.form_submit_button("Salvar disciplina")
     if submitted:
         try:
+            if not name.strip():
+                raise RuntimeError("Informe o nome da disciplina.")
+            if has_duplicate_subject(subjects, name, professor):
+                raise RuntimeError("Já existe uma disciplina ativa com este nome e professor.")
             create_subject({
                 "name": name,
                 "professor": professor,
@@ -410,17 +437,32 @@ def render_subjects(subjects, tasks):
             st.rerun()
         except Exception as exc:
             st.error(str(exc))
-    search = st.text_input("Buscar por nome")
-    show_archived = st.toggle("Mostrar arquivadas", value=False)
+    search_col, filter_col, archive_col = st.columns(3)
+    search = search_col.text_input("Buscar por nome")
+    only_overdue = filter_col.toggle("Com tarefas em atraso", value=False)
+    show_archived = archive_col.toggle("Mostrar arquivadas", value=False)
     visible = [subject for subject in subjects if show_archived or not subject_is_archived(subject)]
     if search:
         visible = [subject for subject in visible if search.lower() in subject.get("name", "").lower()]
+    if only_overdue:
+        visible = [subject for subject in visible if overdue_task_count_for_subject(subject.get("id"), tasks) > 0]
+
+    if not visible:
+        st.info("Nenhuma disciplina encontrada para os filtros selecionados.")
+        return
 
     for subject in visible:
+        subject_tasks = tasks_for_subject(subject.get("id"), tasks)
+        progress = task_progress(subject_tasks)
+        overdue_count = overdue_task_count_for_subject(subject.get("id"), tasks)
         with st.expander(subject.get("name", "Disciplina"), expanded=False):
             st.write(f"Professor: {subject.get('professor', '-')}")
             st.write(f"Carga horária: {subject.get('workload_hours') or subject.get('credits') or '-'}")
             st.write(f"Semestre/período: {subject.get('semester', '-')}")
+            st.write(f"Progresso: {progress}%")
+            st.progress(progress / 100)
+            if overdue_count:
+                st.error(f"{overdue_count} tarefa(s) em atraso")
             with st.form(f"edit_subject_{subject.get('id')}"):
                 name = st.text_input("Nome", value=subject.get("name") or "")
                 professor = st.text_input("Professor", value=subject.get("professor") or "")
@@ -430,6 +472,10 @@ def render_subjects(subjects, tasks):
                 save = st.form_submit_button("Atualizar")
             if save:
                 try:
+                    if not name.strip():
+                        raise RuntimeError("Informe o nome da disciplina.")
+                    if has_duplicate_subject(subjects, name, professor, ignore_id=subject.get("id")):
+                        raise RuntimeError("Já existe uma disciplina ativa com este nome e professor.")
                     update_subject(subject.get("id"), {
                         "name": name,
                         "professor": professor,
@@ -470,6 +516,8 @@ def render_tasks(subjects, tasks):
         submitted = st.form_submit_button("Salvar tarefa", disabled=not subject_options)
     if submitted:
         try:
+            if not title.strip():
+                raise RuntimeError("Informe o título da tarefa.")
             api_request("POST", "tasks", {
                 "subject_id": subject_options[selected_subject],
                 "title": title,
@@ -566,6 +614,8 @@ def render_task_item(task, subject_options, subject_names):
 
         if save_task:
             try:
+                if not edit_title.strip():
+                    raise RuntimeError("Informe o título da tarefa.")
                 update_task(task_id, {
                     "subject_id": subject_options[selected_subject],
                     "title": edit_title,
@@ -611,12 +661,44 @@ def render_reports(subjects, tasks):
     rows = []
     for subject in subjects:
         subject_tasks = [task for task in tasks if task.get("subject_id") == subject.get("id")]
-        completed = [task for task in subject_tasks if task.get("status") == "completed"]
-        progress = round((len(completed) / len(subject_tasks)) * 100) if subject_tasks else 0
-        rows.append({"Disciplina": subject.get("name"), "Progresso": f"{progress}%", "Tarefas": len(subject_tasks)})
+        overdue_count = overdue_task_count_for_subject(subject.get("id"), tasks)
+        rows.append({
+            "Disciplina": subject.get("name"),
+            "Semestre": subject.get("semester") or "-",
+            "Progresso": f"{task_progress(subject_tasks)}%",
+            "Tarefas": len(subject_tasks),
+            "Em atraso": overdue_count,
+        })
     st.dataframe(rows, width="stretch")
 
+    task_history = [
+        {
+            "Disciplina": subject_names.get(task.get("subject_id"), "-"),
+            "Tarefa": task.get("title"),
+            "Status": STATUS_LABELS.get(task.get("status"), task.get("status")),
+            "Prioridade": PRIORITY_LABELS.get(task.get("priority"), task.get("priority")),
+            "Prazo": task.get("due_date"),
+            "Vencida": "Sim" if is_overdue(task) else "Não",
+        }
+        for task in filtered
+    ]
+    st.subheader("Histórico de tarefas no período")
+    st.dataframe(task_history, width="stretch")
+
     export_rows = [
+        {
+            "tipo": "disciplina",
+            "disciplina": subject.get("name"),
+            "titulo": "",
+            "status": "arquivada" if subject_is_archived(subject) else "ativa",
+            "prioridade": "",
+            "prazo": "",
+            "semestre": subject.get("semester") or "",
+            "professor": subject.get("professor") or "",
+            "progresso": f"{task_progress(tasks_for_subject(subject.get('id'), tasks))}%",
+        }
+        for subject in subjects
+    ] + [
         {
             "tipo": "tarefa",
             "disciplina": subject_names.get(task.get("subject_id")),
@@ -624,11 +706,14 @@ def render_reports(subjects, tasks):
             "status": task.get("status"),
             "prioridade": task.get("priority"),
             "prazo": task.get("due_date"),
+            "semestre": "",
+            "professor": "",
+            "progresso": "",
         }
         for task in filtered
     ]
     csv_buffer = io.StringIO()
-    writer = csv.DictWriter(csv_buffer, fieldnames=["tipo", "disciplina", "titulo", "status", "prioridade", "prazo"])
+    writer = csv.DictWriter(csv_buffer, fieldnames=["tipo", "disciplina", "titulo", "status", "prioridade", "prazo", "semestre", "professor", "progresso"])
     writer.writeheader()
     writer.writerows(export_rows)
     st.download_button("Exportar CSV", csv_buffer.getvalue(), "edutrack-dados.csv", "text/csv")

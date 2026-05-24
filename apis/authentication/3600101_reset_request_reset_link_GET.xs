@@ -66,8 +66,9 @@ query "reset/request-reset-link" verb=GET {
   }
 
   response = {
-    message: {}|set:"success":true|set:"message":"magic link sent"
+    message: {}|set:"success":true|set:"message":"magic link sent"|set:"reset_link":$magic_link
   }
 
   tags = ["xano:quick-start"]
+  guid = "Ps3ON1irncjP3gVhpRV_w2de45E"
 }

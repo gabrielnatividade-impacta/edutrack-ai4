@@ -211,7 +211,7 @@ def fetch_tasks(status=None):
             st.warning("Endpoint /tasks não encontrado no Xano. Gere/push os arquivos em apis/members_accounts ou configure XANO_TASKS_BASE_URL.")
             return []
         raise
-    return [normalize_task(task) for task in normalize_list(response.get("data") if isinstance(response, dict) else response)]
+    return [normalize_task(task) for task in normalize_list(response)]
 
 
 def fetch_current_user():
@@ -246,7 +246,21 @@ def normalize_task(task):
     if "subject_id" not in normalized and "subject" in normalized:
         normalized["subject_id"] = normalized.get("subject")
     normalized.setdefault("priority", "medium")
+    normalized.setdefault("status", "pending")
     return normalized
+
+
+def due_group_label(task):
+    due_date = parse_due(task.get("due_date"))
+    if not due_date:
+        return "Sem prazo"
+    if is_overdue(task):
+        return "Vencidas"
+    if due_date == date.today():
+        return "Hoje"
+    if due_date <= date.today().replace(day=date.today().day) and due_date:
+        return due_date.strftime("%d/%m/%Y")
+    return due_date.strftime("%d/%m/%Y")
 
 
 def create_subject(payload):
@@ -275,7 +289,7 @@ def update_subject(subject_id, payload):
         "description": payload.get("description"),
     }
     if "archived" in payload:
-        patch_payload["is_active"] = not bool(payload.get("archived"))
+        patch_payload["archived"] = bool(payload.get("archived"))
     return api_request("PATCH", f"subjects/{subject_id}", patch_payload)
 
 
@@ -443,7 +457,8 @@ def render_tasks(subjects, tasks):
     if not get_base_url("tasks"):
         st.warning("Configure XANO_TASKS_BASE_URL para ativar cadastro, listagem e edição de tarefas.")
     subject_names = {subject.get("id"): subject.get("name") for subject in subjects}
-    subject_options = {subject.get("name"): subject.get("id") for subject in subjects if not subject.get("archived")}
+    active_subjects = [subject for subject in subjects if not subject_is_archived(subject)]
+    subject_options = {subject.get("name"): subject.get("id") for subject in active_subjects}
 
     with st.form("task_form"):
         st.subheader("Nova tarefa")
@@ -467,31 +482,120 @@ def render_tasks(subjects, tasks):
         except Exception as exc:
             st.error(str(exc))
 
-    for task in tasks:
-        title = task.get("title", "Tarefa")
-        label = f"{title} · {subject_names.get(task.get('subject_id'), 'Sem disciplina')}"
-        with st.expander(label):
-            if is_overdue(task):
-                st.error("Prazo vencido")
-            st.write(f"Status: {STATUS_LABELS.get(task.get('status'), task.get('status'))}")
-            st.write(f"Prioridade: {PRIORITY_LABELS.get(task.get('priority'), task.get('priority'))}")
-            st.write(f"Prazo: {task.get('due_date')}")
-            st.write(task.get("description") or "")
+    st.subheader("Minhas tarefas")
+    filter_col, group_col = st.columns(2)
+    status_filter_label = filter_col.selectbox("Status", ["Todos", *STATUS_VALUES.keys()])
+    group_by = group_col.radio("Agrupar por", ["Disciplina", "Prazo"], horizontal=True)
 
-            if st.button("Marcar como concluída", key=f"complete_{task.get('id')}", disabled=task.get("status") == "completed"):
-                try:
-                    api_request("PATCH", f"tasks/{task.get('id')}/complete")
-                    st.rerun()
-                except Exception as exc:
-                    st.error(str(exc))
+    visible_tasks = list(tasks)
+    if status_filter_label != "Todos":
+        visible_tasks = [task for task in visible_tasks if task.get("status") == STATUS_VALUES[status_filter_label]]
 
-            confirm = st.checkbox("Confirmar exclusão desta tarefa", key=f"confirm_task_{task.get('id')}")
-            if st.button("Excluir tarefa", key=f"delete_task_{task.get('id')}", disabled=not confirm):
-                try:
-                    api_request("DELETE", f"tasks/{task.get('id')}")
-                    st.rerun()
-                except Exception as exc:
-                    st.error(str(exc))
+    visible_tasks = sorted(
+        visible_tasks,
+        key=lambda task: (
+            parse_due(task.get("due_date")) or date.max,
+            subject_names.get(task.get("subject_id"), ""),
+            task.get("title") or "",
+        ),
+    )
+
+    if not visible_tasks:
+        st.info("Nenhuma tarefa encontrada para o filtro selecionado.")
+        return
+
+    grouped_tasks = {}
+    for task in visible_tasks:
+        if group_by == "Disciplina":
+            group_name = subject_names.get(task.get("subject_id"), "Sem disciplina")
+        else:
+            group_name = due_group_label(task)
+        grouped_tasks.setdefault(group_name, []).append(task)
+
+    for group_name, group_tasks in grouped_tasks.items():
+        st.markdown(f"### {group_name}")
+        for task in group_tasks:
+            render_task_item(task, subject_options, subject_names)
+
+
+def render_task_item(task, subject_options, subject_names):
+    task_id = task.get("id")
+    title = task.get("title", "Tarefa")
+    status = task.get("status", "pending")
+    status_label = STATUS_LABELS.get(status, status)
+    due_date = parse_due(task.get("due_date"))
+    overdue_label = " · VENCIDA" if is_overdue(task) else ""
+    label = f"{title} · {subject_names.get(task.get('subject_id'), 'Sem disciplina')} · {status_label}{overdue_label}"
+
+    with st.expander(label):
+        if is_overdue(task):
+            st.error("Prazo vencido")
+
+        st.write(f"Status: {status_label}")
+        st.write(f"Prioridade: {PRIORITY_LABELS.get(task.get('priority'), task.get('priority'))}")
+        st.write(f"Prazo: {due_date.strftime('%d/%m/%Y') if due_date else '-'}")
+        if task.get("description"):
+            st.write(task.get("description"))
+
+        current_subject_name = next(
+            (name for name, subject_id in subject_options.items() if subject_id == task.get("subject_id")),
+            next(iter(subject_options), ""),
+        )
+
+        with st.form(f"edit_task_{task_id}"):
+            selected_subject = st.selectbox(
+                "Disciplina",
+                list(subject_options.keys()) or ["Cadastre uma disciplina primeiro"],
+                index=list(subject_options.keys()).index(current_subject_name) if current_subject_name in subject_options else 0,
+                disabled=not subject_options,
+            )
+            edit_title = st.text_input("Título", value=task.get("title") or "")
+            edit_description = st.text_area("Descrição", value=task.get("description") or "")
+            edit_due = st.date_input("Prazo", value=due_date or date.today())
+            edit_status_label = st.selectbox(
+                "Status",
+                list(STATUS_VALUES.keys()),
+                index=list(STATUS_VALUES.values()).index(status) if status in STATUS_VALUES.values() else 0,
+            )
+            edit_priority_label = st.selectbox(
+                "Prioridade",
+                list(PRIORITY_VALUES.keys()),
+                index=list(PRIORITY_VALUES.values()).index(task.get("priority")) if task.get("priority") in PRIORITY_VALUES.values() else 1,
+            )
+            save_task = st.form_submit_button("Atualizar tarefa", disabled=not subject_options)
+
+        if save_task:
+            try:
+                update_task(task_id, {
+                    "subject_id": subject_options[selected_subject],
+                    "title": edit_title,
+                    "description": edit_description,
+                    "due_date": edit_due.isoformat(),
+                    "status": STATUS_VALUES[edit_status_label],
+                    "priority": PRIORITY_VALUES[edit_priority_label],
+                })
+                st.success("Tarefa atualizada.")
+                st.rerun()
+            except Exception as exc:
+                st.error(str(exc))
+
+        action_col, delete_col = st.columns(2)
+        if action_col.button("Marcar como concluída", key=f"complete_{task_id}", disabled=status == "completed"):
+            try:
+                api_request("PATCH", f"tasks/{task_id}/complete")
+                st.success("Tarefa concluída.")
+                st.rerun()
+            except Exception as exc:
+                st.error(str(exc))
+
+        confirm = delete_col.checkbox("Confirmar exclusão", key=f"confirm_task_{task_id}")
+        if delete_col.button("Excluir tarefa", key=f"delete_task_{task_id}", disabled=not confirm):
+            try:
+                api_request("DELETE", f"tasks/{task_id}")
+                st.success("Tarefa excluída.")
+                st.rerun()
+            except Exception as exc:
+                st.error(str(exc))
 
 
 def render_reports(subjects, tasks):

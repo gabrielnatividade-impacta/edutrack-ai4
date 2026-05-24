@@ -1,15 +1,15 @@
-# System Context
-## Overview
+# Contexto do Sistema
+## Visão Geral
 
-This project is an academic management backend built using XanoScript and Spec-
-Driven Development.
+Este projeto é um backend de gerenciamento acadêmico construído usando XanoScript e Desenvolvimento Orientado a Especificações.
 
-## Purpose
-Allow users to manage academic subjects and related data.
-## Core Entities
-- Users (native Xano authentication)
-- Subjects (academic disciplines owned by users)
-## Relationships 
-- Each subject belongs to one user.
-## Expected Evolution
-The system will later include APIs, automation tasks, and integrations.
+## Objetivo
+Permitir que os usuários gerenciem disciplinas acadêmicas e dados relacionados.
+
+## Entidades Principais
+- Usuários (autenticação nativa do Xano)
+- Disciplinas (disciplinas acadêmicas pertencentes aos usuários)
+## Relacionamentos
+- Cada assunto pertence a um usuário.
+## Evolução esperada
+O sistema incluirá posteriormente APIs, tarefas de automação e integrações.

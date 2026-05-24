@@ -1,11 +1,15 @@
-# EduTrack AI
+\# EduTrack AI
+
 Projeto da disciplina Innovation Lab – Faculdade Impacta
-Aluno: Gabriel Moreira da Natividade
-2025/2026  
+
+Aluno: João Vitor Neves Martins
+
+2025/2026
+
 ## Tecnologias Utilizadas.
+
 Git & GitHub
 VS Code
 Node.js
 OpenSpec
 Xano
-

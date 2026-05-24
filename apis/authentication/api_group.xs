@@ -1,5 +1,5 @@
 // This group provides endpoints for user login, signup, and reset password, returning authentication tokens and user records.
 api_group Authentication {
-  canonical = "GNnhTlhZ"
+  canonical = "CxWf3M6O"
   tags = ["xano:quick-start"]
 }

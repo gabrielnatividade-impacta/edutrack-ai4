@@ -1,0 +1,42 @@
+# Tasks
+
+- [x] Remover conflitos Git dos endpoints `.xs` de disciplinas que impediam parsing antes do push para Xano.
+- [x] Revisar endpoints duplicados de `subjects` (`3865...` e `3877...`) e manter apenas o conjunto correto antes do push manual.
+- [x] Permitir cadastro de conta com e-mail e senha.
+- [x] Permitir login com e-mail e senha.
+- [x] Manter o usuário autenticado durante a navegação entre páginas.
+- [x] Permitir visualização e edição de perfil com nome e e-mail.
+- [x] Permitir redefinição de senha via e-mail.
+- [x] Encerrar sessão automaticamente quando o token de autenticação expirar.
+- [x] Permitir cadastro de disciplina com nome, professor e carga horária.
+- [x] Armazenar disciplinas no banco de dados vinculadas ao usuário logado.
+- [x] Listar todas as disciplinas do usuário.
+- [x] Permitir edição de disciplina.
+- [x] Permitir exclusão de disciplina.
+- [x] Impedir cadastro de disciplinas duplicadas com mesmo nome e professor para o mesmo usuário.
+- [x] Permitir busca de disciplinas por nome.
+- [x] Permitir filtro de disciplinas que possuem tarefas em atraso.
+- [x] Permitir cadastro de tarefa vinculada a uma disciplina com título, descrição e prazo.
+- [x] Armazenar tarefas associadas à disciplina e ao usuário corretos.
+- [x] Listar tarefas do usuário agrupadas por disciplina ou prazo.
+- [x] Permitir edição de tarefa.
+- [x] Permitir exclusão de tarefa.
+- [x] Permitir marcar tarefa como concluída.
+- [x] Permitir filtro de tarefas por status: Pendente, Em andamento, Concluída.
+- [x] Sinalizar visualmente tarefas com prazo vencido.
+- [x] Criar dashboard pós-login com total de disciplinas ativas.
+- [x] Exibir no dashboard total de tarefas pendentes e em atraso.
+- [x] Exibir no dashboard as próximas tarefas com prazo mais próximo.
+- [x] Exibir no dashboard indicador de progresso geral por percentual de tarefas concluídas.
+- [x] Criar tela de relatórios com histórico de tarefas por período.
+- [x] Exibir progresso por disciplina na tela de relatórios.
+- [x] Permitir exportação de disciplinas e tarefas em CSV.
+- [x] Permitir exportação de disciplinas e tarefas em PDF.
+- [x] Permitir associar semestre/período a cada disciplina.
+- [x] Adicionar prioridade nas tarefas: Baixa, Média, Alta.
+- [x] Exibir progresso de cada disciplina com base nas tarefas concluídas.
+- [x] Permitir arquivar disciplinas concluídas sem excluí-las.
+- [x] Definir identidade visual consistente para o app com cores, logo e tipografia.
+- [x] Melhorar tela de login e cadastro com layout mais atrativo.
+- [x] Exibir tela de boas-vindas para usuários sem dados cadastrados.
+- [x] Solicitar confirmação antes de excluir disciplinas ou tarefas.

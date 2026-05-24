@@ -24,20 +24,15 @@ query "subjects/{subject_id}" verb=DELETE {
       error = "Subject not found"
     }
 
-    db.edit subjects {
+    db.del subjects {
       field_name = "id"
       field_value = $input.subject_id
-      data = {
-        archived   : true
-        updated_at : now
-      }
-    } as $archived_subject
+    }
   }
 
   response = {
     success: true
     subject_id: $input.subject_id
-    subject: $archived_subject
   }
   tags = ["subjects", "delete"]
   guid = "pXJSU-d14pXaMdURcOrsgPoIsHQ"

@@ -47,4 +47,5 @@ function "Getting Started Template/generate_magic_link" {
     |set:"token":$token
     |set:"email":$updated_password_reset.email
   tags = ["xano:quick-start"]
+  guid = "HrV0baSvtGh0Qnh7eSfmOvpldyY"
 }

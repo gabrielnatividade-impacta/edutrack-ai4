@@ -14,6 +14,21 @@ table subject {
   
     // A longer description of the subject
     text description?
+
+    // Professor responsible for this subject
+    text professor? filters=trim
+
+    // Total workload in hours
+    int workload_hours?
+
+    // Academic semester or period
+    text semester? filters=trim
+
+    // Active flag used for archiving without deleting
+    bool is_active?=true
+
+    // Timestamp of the last update
+    timestamp updated_at?
   
     // The status of the subject record
     enum status? {
@@ -39,4 +54,5 @@ table subject {
   ]
 
   tags = ["edutrack"]
+  guid = "2GZX1JZAzPVvHnyrds8PosgT2BA"
 }

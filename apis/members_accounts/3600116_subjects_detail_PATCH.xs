@@ -11,6 +11,7 @@ query "subjects/{subject_id}" verb=PATCH {
     text professor?
     int workload_hours?
     text semester?
+    bool archived?
     bool is_active?
   }
 
@@ -41,7 +42,7 @@ query "subjects/{subject_id}" verb=PATCH {
         professor      : $input.professor != null ? $input.professor : $subject.professor
         workload_hours : $input.workload_hours != null ? $input.workload_hours : $subject.workload_hours
         semester       : $input.semester != null ? $input.semester : $subject.semester
-        archived       : $input.is_active != null ? ($input.is_active == false) : $subject.archived
+        archived       : $input.archived != null ? $input.archived : $subject.archived
         updated_at     : now
       }
     } as $updated_subject
